@@ -1,5 +1,6 @@
 #Import all files in directory called "ICCD_X_Y.txt" and averaging files with a common X. Output one file per X.
-#v0
+#v0.1 11/29/17 FW
+#Added ability to output wavelength also.
 
 import os
 import numpy as np
@@ -13,10 +14,18 @@ temp_arr = []
 cur_Par = 0
 WL_arr = []
 
+cent_WL = 450					#Centre wavelength of the CCD, in nm
+WL_cal = 0.103					#nm per pixel
+WL_int = cent_WL - 69.57		#nm offset
+CCD_size = 1340					#CCD total pixel count 
 file_suff = "ICCD_"				#File suffix - change here
 summ_file_base = "AVG_CCD_"		#Output file base
 summ_file_ext = ".txt"			#Output file extension
 
+#Create WL array
+func1 = lambda i, j: i*WL_cal+WL_int
+WL_arr = np.fromfunction(np.vectorize(func1), (CCD_size,1),  dtype=int)
+WL_arr = WL_arr.flatten()
 
 #find all files with "ICCD_" start
 for file in os.listdir(os.getcwd()):
@@ -49,8 +58,9 @@ for idx, item in enumerate(filelist):
 		else :
 			avg_arr = np.mean(data_arr.astype(np.float),axis=0)
 
+		avg_arr = np.vstack((WL_arr,avg_arr))
 		save_file = open(summ_file_base+str(cur_Par)+summ_file_ext, 'wb')
-		np.savetxt(save_file, avg_arr, delimiter = '\t',fmt="%s")
+		np.savetxt(save_file, np.transpose(avg_arr), delimiter = '\t',fmt="%s")
 		save_file.close()
 
 		data_arr = np.genfromtxt(item, delimiter = '\t', usecols=(1), dtype = 'str')
@@ -62,7 +72,7 @@ if data_arr.ndim == 1:
 else :
 	avg_arr = np.mean(data_arr.astype(np.float),axis=0)
 
-		
+avg_arr = np.vstack((WL_arr,avg_arr))		
 save_file = open(summ_file_base+str(a)+summ_file_ext, 'wb')
-np.savetxt(save_file, avg_arr, delimiter = '\t',fmt="%s")
+np.savetxt(save_file, np.transpose(avg_arr), delimiter = '\t',fmt="%s")
 save_file.close()
